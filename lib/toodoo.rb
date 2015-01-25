@@ -5,7 +5,19 @@ require 'pry'
 
 module Toodoo
   class User < ActiveRecord::Base
+    has_many :todo_lists
   end
+
+  class List < ActiveRecord::Base
+    has_many :todo_tasks
+    belongs_to :user
+  end
+
+  class Task < ActiveRecord::Base
+    has_one :todo_list
+  end
+
+
 end
 
 class TooDooApp
@@ -51,17 +63,18 @@ class TooDooApp
   end
 
   def new_todo_list
-    # TODO: This should create a new todo list by getting input from the user.
-    # The user should not have to tell you their id.
-    # Create the todo list in the database and update the @todos variable.
+    say("Creating a new to do list name:")
+    list_name = ask("What would you like the list name to be?") { |q| q.validate = /\A\w+\Z/ }
+    @todos = Toodoo::List.create(:title => title, :user_id => user.id)
+    say("Cangrats, #{@user.name} you have successfully created a new list called #{@todos.title}!" )
   end
 
   def pick_todo_list
     choose do |menu|
-      # TODO: This should get get the todo lists for the logged in user (@user).
-      # Iterate over them and add a menu.choice line as seen under the login method's
-      # find_each call. The menu choice block should set @todos to the todo list.
-
+      menu.prompt = "Please pick one of your lists:"
+        Toodoo::List.where(:user_id => user.id).find_each do |x|
+          menu.choice(x.title, "Choose #{x.title}") { @todos = x }
+      end
       menu.choice(:back, "Just kidding, back to the main menu!") do
         say "You got it!"
         @todos = nil
@@ -70,23 +83,60 @@ class TooDooApp
   end
 
   def delete_todo_list
-    # TODO: This should confirm that the user wants to delete the todo list.
-    # If they do, it should destroy the current todo list and set @todos to nil.
+    choose do |menu|
+      menu.choice = "Please choose which list you would like to delete:"
+        Toodoo::List.where(:user_id => user.id).find_each do |x|
+          menu.choice(x.title, "Choose #{x.title}") {@todos = x}
+      end
+      choices = 'yn'
+      delete = ask("Are you sure you want to delete #{x.title}?") do |q|
+        q.validate =/\A[#{choices}]\Z/
+        q.character = true
+        q.confirm = true
+      end
+      if delete == 'y'
+        @todos.destroy
+        @todos = nil
+      end
+    end
   end
 
   def new_task
+    say("New task:")
+    task = ask("What is the new task name?") { |q| q.validate = /\A\w+\Z/ }
+    @todos = Toodoo::Task.create{:task => task, :finished => false, :todo_id => todo.id}
     # TODO: This should create a new task on the current user's todo list.
     # It must take any necessary input from the user. A due date is optional.
   end
 
   ## NOTE: For the next 3 methods, make sure the change is saved to the database.
   def mark_done
+    choose do |menu|
+      menu.prompt = "Please select a choice:"
+      Toodoo::Task.where(:todo_id => todo.id, :finished => false) do |y|
+        menu.choice(y.task, "Task Completed") {y.update(:finished => true)}
+        x.save
+      end
+      menu.choice(:back)
+    end
     # TODO: This should display the todos on the current list in a menu
     # similarly to pick_todo_list. Once they select a todo, the menu choice block
     # should update the todo to be completed.
   end
 
   def change_due_date
+    choose do |menu|
+      menu.prompt = "Please select a choice:"
+        Toodoo::Task.where(:user_id => user.id).find_each do |x|
+          menu.choice(x.title, "Choose #{x.title}") { @todos = x }
+      end
+      updated_due_date = ask("When would you like the new due date to be?", ###### )
+
+      # HAVING ISSUES --> finish this sections after break...
+
+    # say("Set new due date:")
+    # due_date = ask("What would you like your due date to be for your task?") { |q| q.validate = /\A\w+\Z/ }
+
     # TODO: This should display the todos on the current list in a menu
     # similarly to pick_todo_list. Once they select a todo, the menu choice block
     # should update the due date for the todo. You probably want to use
@@ -94,6 +144,7 @@ class TooDooApp
   end
 
   def edit_task
+    choose do |menu|
     # TODO: This should display the todos on the current list in a menu
     # similarly to pick_todo_list. Once they select a todo, the menu choice block
     # should change the name of the todo.
