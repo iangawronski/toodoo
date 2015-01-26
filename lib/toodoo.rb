@@ -104,9 +104,7 @@ class TooDooApp
   def new_task
     say("New task:")
     task = ask("What is the new task name?") { |q| q.validate = /\A\w+\Z/ }
-    @todos = Toodoo::Task.create{:task => task, :finished => false, :todo_id => todo.id}
-    # TODO: This should create a new task on the current user's todo list.
-    # It must take any necessary input from the user. A due date is optional.
+      Toodoo::Task.create{:task => task, :finished => false, :todo_id => todo.id}
   end
 
   ## NOTE: For the next 3 methods, make sure the change is saved to the database.
@@ -119,9 +117,6 @@ class TooDooApp
       end
       menu.choice(:back)
     end
-    # TODO: This should display the todos on the current list in a menu
-    # similarly to pick_todo_list. Once they select a todo, the menu choice block
-    # should update the todo to be completed.
   end
 
   def change_due_date
@@ -136,25 +131,31 @@ class TooDooApp
 
     # say("Set new due date:")
     # due_date = ask("What would you like your due date to be for your task?") { |q| q.validate = /\A\w+\Z/ }
-
-    # TODO: This should display the todos on the current list in a menu
-    # similarly to pick_todo_list. Once they select a todo, the menu choice block
-    # should update the due date for the todo. You probably want to use
-    # `ask("foo", Date)` here.
   end
 
   def edit_task
     choose do |menu|
-    # TODO: This should display the todos on the current list in a menu
-    # similarly to pick_todo_list. Once they select a todo, the menu choice block
-    # should change the name of the todo.
+      menu.prompt = "Which task would you like to edit?"
+      Toodoo::Task.where(:todo_id => @todos.id).each do |x|
+        menu.choice(x.name, "Yeah") {x.update(name: get_new_task_name)}
+        x.save
+      end
+    end
   end
 
   def show_overdue
-    # TODO: This should print a sorted list of todos with a due date *older*
-    # than `Date.now`. They should be formatted as follows:
-    # "Date -- Eat a Cookie"
-    # "Older Date -- Play with Puppies"
+    @todos.task.order(:due_date :asc) do |task|
+    say("These are your items, sorted by newest first.")
+      if task.due_date < Date.today
+        say("The task is overdue!")
+      end
+    end
+  end
+
+  def get_new_task_name
+    puts "Please enter in a new name for your task."
+    entry = gets.chomp!
+    return entry
   end
 
   def run

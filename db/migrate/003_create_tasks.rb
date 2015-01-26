@@ -1,10 +1,10 @@
 class CreateTasks < ActiveRecord::Migration
   def self.up
-    create_table :todo_tasks do |t|
+    create_table :todo_task do |t|
       t.datetime :due_date
       t.string :task
-      t.integer :task_list_id
-      t.boolean :completed, :default => false
+      t.integer :todo_id
+      t.boolean :finished, :default => false
       t.text :taskdescription
     end
   end
